@@ -126,7 +126,7 @@ class TestSourceCounts(unittest.TestCase):
 
     def test_twitter_count(self):
         counts = get_source_counts()
-        self.assertEqual(counts["twitter"], 73)
+        self.assertEqual(counts["twitter"], 76)
 
     def test_rss_count(self):
         counts = get_source_counts()

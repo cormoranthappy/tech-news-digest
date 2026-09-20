@@ -82,6 +82,7 @@ Evidence-led tech digest with unified collection and one editorial selection sha
 - Daily preserves original sections: 2–4 sentence overview; configured topics (normally LLM, AI Agent, Crypto, Frontier Tech; aim for 3–5 qualified items each); KOL viewpoints ≤3; releases ≤3 repositories; project discovery ≤3; blog picks ≤3; ≤30 unique items overall. News/blog explanations normally contain 2–3 concise sentences of change, evidence and implication. Retain empty headings with a coverage note, never filler. Optimize content within sections: a request to shorten GitHub releases must not become a whole-report redesign or one-message digest.
 - Weekly ≤18 unique items: judgment, ≤3 evidence-backed thematic syntheses (not an expanded daily list), releases ≤5 repositories/actions, try ≤2, read ≤2, proposed next-week checks ≤3 (question + minimal test + metric; explicitly not performed).
 - Caps are not quotas. Count evidence events inside themes and standalone actions/checks. Preserve daily topic sections; weekly uses thematic synthesis. Body limits: daily ≤6500 characters, weekly ≤4800, excluding URL targets; never fill to the limit.
+- Mandatory security coverage: follow the primary-alert/search and pre-delivery checks in `references/digest-prompt.md`. Preserve existing topics; use optional `🛡️ 安全警报` after the daily overview only for credible urgent incidents, omit when empty, and count/deduplicate within existing caps. Log checks and decisions; failed collection is not evidence of no incidents.
 - Relevance, impact and evidence before internal scores. Exceptional claims need original technical evidence and independent assessment where possible, otherwise exclude/downgrade. No public scores, social metrics or operational statistics. Daily keeps substantive, nonduplicative KOL viewpoints. A material coverage gap may receive one concise caveat without raw counts; details stay in the final operational log.
 - Deduplicate events and canonical URLs across the whole report. Daily repeats require incremental developments; weekly may synthesize daily coverage. Daily keeps blog picks; weekly reading is optional and may include papers, docs, postmortems or essays.
 - Project discovery is not verified trending; no lifetime-derived growth or repeated mature repos without meaningful changes. Preserve the prompt's consequential-release rules, exact versions and official links.
@@ -344,10 +345,10 @@ Place custom configs in `workspace/config/` to override defaults:
 - Same canonical report, A4 Chinese typography and page numbers.
 - Generated via `scripts/generate-pdf.py` (requires `weasyprint`); no PDF-only content.
 
-## Default Sources (213 enabled)
+## Default Sources (216 enabled)
 
 - **RSS Feeds (93)**: AI labs, arXiv, research blogs, tech news, crypto news, Chinese tech media, YouTube channels
-- **Twitter/X KOLs (73)**: AI researchers, model labs, crypto leaders, tech executives
+- **Twitter/X KOLs (76)**: AI researchers, model labs, crypto leaders, tech executives
 - **GitHub Repos (47)**: Major open-source projects (llama.cpp, vLLM, SGLang, LangGraph, MCP, etc.)
 - **Reddit (13, disabled by default)**: Reddit blocks datacenter IPs; set `REDDIT_CLIENT_ID`/`REDDIT_CLIENT_SECRET` and re-enable in your overlay
 - **Web Search (4 topics)**: LLM, AI Agent, Crypto, Frontier Tech

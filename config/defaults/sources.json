@@ -2912,6 +2912,42 @@
         "crypto"
       ],
       "note": "Bankless co-host"
+    },
+    {
+      "id": "slowmist-twitter",
+      "type": "twitter",
+      "name": "SlowMist",
+      "handle": "SlowMist_Team",
+      "enabled": true,
+      "priority": true,
+      "topics": [
+        "crypto"
+      ],
+      "note": "Primary security alerts; verify original technical evidence and affected versions before publishing."
+    },
+    {
+      "id": "peckshield-twitter",
+      "type": "twitter",
+      "name": "PeckShield Alert",
+      "handle": "PeckShieldAlert",
+      "enabled": true,
+      "priority": true,
+      "topics": [
+        "crypto"
+      ],
+      "note": "Primary security alerts; verify original technical evidence and affected versions before publishing."
+    },
+    {
+      "id": "blocksec-twitter",
+      "type": "twitter",
+      "name": "BlockSec",
+      "handle": "BlockSecTeam",
+      "enabled": true,
+      "priority": true,
+      "topics": [
+        "crypto"
+      ],
+      "note": "Primary security alerts; verify original technical evidence and affected versions before publishing."
     }
   ]
 }

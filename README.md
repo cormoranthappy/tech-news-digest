@@ -1,6 +1,6 @@
 # Tech News Digest
 
-> Automated tech news digest — 213 built-in sources, 6-source pipeline, one chat message to install.
+> Automated tech news digest — 216 built-in sources, 6-source pipeline, one chat message to install.
 
 **English** | [中文](README_CN.md)
 
@@ -32,12 +32,12 @@ clawhub install tech-news-digest
 
 ## 📊 What You Get
 
-A quality-scored, deduplicated tech digest built from **213 built-in sources** plus **4 web search topics**:
+A quality-scored, deduplicated tech digest built from **216 built-in sources** plus **4 web search topics**:
 
 | Layer | Sources | What |
 |-------|---------|------|
 | 📡 RSS | 93 feeds | OpenAI, arXiv, Google Research, Techmeme, HN, Interconnects, CoinDesk… |
-| 🐦 Twitter/X | 73 KOLs | @karpathy, @simonw, @VitalikButerin, @sama, @deepseek_ai… |
+| 🐦 Twitter/X | 76 KOLs | @karpathy, @simonw, @VitalikButerin, @sama, @deepseek_ai… |
 | 🔍 Web Search | 4 topics | Tavily or Brave Search API with freshness filters |
 | 🐙 GitHub | 47 repos | Releases from key projects (llama.cpp, vLLM, SGLang, LangGraph, MCP…) |
 | 🗣️ Reddit | 13 subs *(opt-in)* | r/MachineLearning, r/LocalLLaMA, r/CryptoCurrency — needs OAuth, see below |
@@ -62,7 +62,7 @@ A quality-scored, deduplicated tech digest built from **213 built-in sources** p
 
 ## ⚙️ Configuration
 
-- `config/defaults/sources.json` — 213 built-in sources (93 RSS, 73 Twitter, 47 GitHub) plus 13 opt-in Reddit
+- `config/defaults/sources.json` — 216 built-in sources (93 RSS, 76 Twitter, 47 GitHub) plus 13 opt-in Reddit
 - `config/defaults/topics.json` — 4 topics with search queries & Twitter queries
 - User overrides in `workspace/config/` take priority
 
@@ -88,7 +88,7 @@ in the logs. To turn it on:
 
 ## 🎨 Customize Your Sources
 
-Works out of the box with 213 built-in sources (93 RSS, 73 Twitter, 47 GitHub) — but fully customizable. Copy the defaults to your workspace config and override:
+Works out of the box with 216 built-in sources (93 RSS, 76 Twitter, 47 GitHub) — but fully customizable. Copy the defaults to your workspace config and override:
 
 ```bash
 # Copy and customize

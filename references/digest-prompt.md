@@ -54,6 +54,17 @@ python3 <SKILL_DIR>/scripts/run-pipeline.py \
 
 If it fails, run individual scripts in `<SKILL_DIR>/scripts/` (see each script's `--help`), then merge with `merge-sources.py`. Keep collection failures and source counts in the final operational log, not the digest.
 
+## Mandatory Security Coverage Check
+
+Before selection and again before delivery, check the reporting window for material security incidents affecting crypto wallets/keys/protocols, AI agents/MCP/coding tools, developer dependencies/supply chains and widely used infrastructure. This is mandatory even when the candidate summary is sparse or contains no security stories.
+
+- Inspect recent primary alerts from SlowMist (`SlowMist_Team`), PeckShield (`PeckShieldAlert`) and BlockSec (`BlockSecTeam`), plus relevant vendor advisories. Run targeted web/X searches for active exploitation, wallet malware/private-key theft, agent credential leaks and supply-chain compromise. Use an available alternate search/browser route if a collector fails; never treat a failed check as no incidents.
+- Verify original alert text, disclosure timestamp/timezone, affected versions, exploitation status and recommended actions. Attribute investigator claims; distinguish confirmed findings from user reports. Do not infer losses, universal compromise or attribution. An alert after a morning cutoff belongs in the next report, not retroactively in the prior morning's coverage.
+- Material, credible incidents requiring immediate action outrank routine launches regardless of score/social engagement. A high-impact qualified alert may not be silently dropped: record inclusion or a concrete evidence/scope/time-window exclusion reason in the operational log.
+- Ordinary security updates stay in their existing topic or release section. For credible active exploitation, exposed funds/credentials, or urgent stop-use/upgrade/rotation action, insert optional `## 🛡️ 安全警报` immediately after the executive summary, before topic sections. Omit this heading entirely if no incident qualifies; do not fill it with low-impact CVEs. Preserve all original daily sections.
+- Each alert states affected users/versions, what is established, and source-backed action. Uninstalling does not revoke already exposed credentials; recommend rotation/migration only where supported. Keep the event in ONE section, with no duplicate topic/release bullet. Alerts count toward existing global item/body limits and, when applicable, release limits. Weekly integrates them into themes/actions rather than duplicating them.
+- Log `security_check` status, checked sources/window, candidates and inclusion/exclusion decisions. If primary and fallback access both fail, record incomplete coverage and use the permitted concise coverage caveat; never claim a clean security window. Structural validation is not proof this check was completed.
+
 ## Report Generation
 
 Get a candidate overview (this is a retrieval limit, not an output quota):
