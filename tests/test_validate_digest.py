@@ -42,10 +42,10 @@ class DigestValidatorTests(unittest.TestCase):
         self.invalid(text + "\n" + item(30), "item-limit")
 
     def test_weekly_boundary(self):
-        text = "\n".join(item(n) for n in range(18))
+        text = "\n".join(item(n) for n in range(35))
         self.valid(text, "weekly")
-        self.invalid(text + "\n" + item(18), "item-limit", "weekly")
-        self.valid(text, "daily")
+        self.invalid(text + "\n" + item(35), "item-limit", "weekly")
+        self.invalid(text, "item-limit", "daily")
 
     def test_nested_bullets_not_top_level(self):
         text = "\n".join(item(n) + "\n  - 影响说明" for n in range(12))
@@ -152,11 +152,13 @@ class DigestValidatorTests(unittest.TestCase):
         self.valid("- 新闻 [源](https://example.com/a?id=2)\n- 新闻 [源](https://example.com/a?id=3)")
 
     def test_exact_editorial_section_caps(self):
-        for title, mode, cap in (("值得读", "daily", 3), ("值得读", "weekly", 2),
+        for title, mode, cap in (("值得读", "daily", 3), ("值得读", "weekly", 4),
+                                 ("观点与深度阅读", "weekly", 4), ("Viewpoints / Deep Reading", "weekly", 4),
                                  ("博客精选", "daily", 3), ("KOL 动态", "daily", 3),
                                  ("GitHub 项目发现", "daily", 3),
-                                 ("项目发现", "daily", 3), ("值得试", "weekly", 2),
-                                 ("可行动", "daily", 2), ("本周主题", "weekly", 3),
+                                 ("项目发现", "daily", 3), ("值得试", "weekly", 3),
+                                 ("可行动", "daily", 2), ("下周关注", "weekly", 3),
+                                 ("Next-week watch", "weekly", 3),
                                  ("下周验证清单", "weekly", 3)):
             text = "## " + title + "\n" + "\n".join(item(n) for n in range(cap))
             self.valid(text, mode)
@@ -182,6 +184,87 @@ class DigestValidatorTests(unittest.TestCase):
         for title in ("LLM / 大模型", "AI Agent", "Crypto / 加密技术", "前沿科技",
                       "KOL 动态", "GitHub 发布精选", "GitHub 项目发现", "博客精选"):
             self.assertIn(title, daily)
+
+    def test_weekly_body_budget_excludes_url_targets(self):
+        url = "https://example.com/a_(b)?x=1&amp;y=2"
+        for link in (f"[来源]({url})", f'[来源](<{url}> "Title")', f"<{url}>"):
+            self.assertEqual(len(link) - len(url), self.module.body_length(link))
+        text = item(1)
+        count = self.module.body_length(text)
+        boundary = text + "中" * (10000 - count)
+        self.valid(boundary, "weekly")
+        self.invalid(boundary + "中", "body-limit", "weekly")
+        self.valid(boundary.replace("https://example.com/news/1", "https://example.com/" + "a" * 12000), "weekly")
+        # Daily validator behavior is intentionally unchanged (editorial cap remains 6500).
+        self.valid(boundary, "daily")
+
+    def test_weekly_configured_headings(self):
+        topics = ["🧪 自定义研究", "🛰️ 自定义硬件"]
+        text = "# 周报\n> 本周概览。\n## " + topics[0] + "\n" + item(1)
+        text += "\n## " + topics[1] + "\n本期采集受限，无法确认完整覆盖。"
+        self.assertEqual([], self.module.validate(text, "weekly", topic_headings=topics))
+        for bad, code in ((text.replace("## " + topics[1], "## 其他"), "topic-heading"),
+                          (text, "topic-order"),
+                          (text.replace("本期采集受限，无法确认完整覆盖。", ""), "coverage-note")):
+            expected = list(reversed(topics)) if code == "topic-order" else topics
+            self.assertTrue(any(code in e for e in self.module.validate(bad, "weekly", topic_headings=expected)))
+        # No hard-coded LLM/Agent/Crypto/frontier names or per-topic item quotas.
+        self.assertEqual([], self.module.validate(text, "daily", topic_headings=["Absent"]))
+        duplicate = text + "\n## " + topics[0] + "\n本期无更新。"
+        self.assertTrue(any("topic-heading" in e for e in self.module.validate(duplicate, "weekly", topic_headings=topics)))
+
+    def test_weekly_key_releases_non_github_sources(self):
+        text = "## 📦 关键发布\n" + "\n".join(item(n) for n in range(5))
+        self.valid(text, "weekly")
+        self.invalid(text + "\n" + item(5), "release-limit", "weekly")
+        self.invalid("## 关键发布\n" + item(1) + "中" * 81, "release-length", "weekly")
+        # New localized heading recognition must not broaden daily release gates.
+        self.valid(text + "\n" + item(5), "daily")
+        self.valid("## 关键发布\n" + release(1, "中" * 80), "weekly")
+        self.invalid("## 关键发布\n" + release(1, "中" * 81), "release-length", "weekly")
+
+    def test_weekly_aliases_share_budgets(self):
+        self.invalid("## 观点与深度阅读\n" + "\n".join(item(n) for n in range(4))
+                     + "\n## 值得读\n" + item(4), "section-limit", "weekly")
+        self.invalid("## 下周关注\n" + "\n".join(item(n) for n in range(3))
+                     + "\n## 下周实验\n- 建议测试延迟。", "section-limit", "weekly")
+        self.invalid("## 安全风险\n" + item(1) + "\n## 自定义主题\n" + item(1), "duplicate-url", "weekly")
+
+    def test_weekly_policy_and_template_consistency(self):
+        root = SCRIPT.parents[1]
+        paths = [root / "SKILL.md", root / "references/digest-prompt.md"]
+        paths += list((root / "references/templates").glob("*.md"))
+        for path in paths:
+            text = path.read_text()
+            with self.subTest(path=path.name):
+                self.assertIn("10000", text)
+                self.assertIn("35", text)
+                self.assertIn("--topic-heading", text)
+                for stale in ("≤4800", "≤18", "at most 18", "try ≤2", "read ≤2", "Themes ≤3"):
+                    self.assertNotIn(stale, text)
+        weekly = (root / "references/templates/markdown.md").read_text().split("## Weekly", 1)[1]
+        for slot in ("LLM / 大模型", "AI Agent", "Crypto / 加密技术", "前沿科技", "关键发布", "项目发现", "观点与深度阅读", "下周关注"):
+            self.assertIn(slot, weekly)
+
+    def test_weekly_cli_configured_headings(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "weekly.md"
+            path.write_text("# 周报\n> 离线示例。\n## 自定义主题\n" + item(1), encoding="utf-8")
+            command = [sys.executable, str(SCRIPT), "--input", str(path), "--mode", "weekly", "--topic-heading", "自定义主题"]
+            result = subprocess.run(command, capture_output=True, text=True)
+            self.assertEqual(0, result.returncode, result.stderr)
+            result = subprocess.run(command + ["--topic-heading", "缺少的主题"], capture_output=True, text=True)
+            self.assertEqual(1, result.returncode)
+            self.assertIn("topic-heading", result.stderr)
+
+    def test_weekly_watch_requires_sources_for_facts(self):
+        self.invalid("## 下周关注\n- 预计周一发布新版本。", "source-link", "weekly")
+        self.valid("## 下周关注\n" + item(1), "weekly")
+        self.valid("## 下周关注\n- 建议实验：固定输入测试延迟，尚未执行。", "weekly")
+        self.invalid("## 下周关注\n- 建议关注周一发布的新版本。", "source-link", "weekly")
+
+    def test_weekly_no_global_three_theme_limit(self):
+        self.valid("## 本周主题\n" + "\n".join(item(n) for n in range(5)), "weekly")
 
     def test_empty_is_not_deliverable(self):
         self.invalid("# Daily digest\n", "empty-digest")

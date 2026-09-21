@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+- Restore weekly multi-section coverage: overview, configured topics in order, concise key releases (≤5), project discovery (≤3), viewpoints/deep reading (≤4), and optional next-week watch (≤3). Retain empty required headings with honest coverage notes; optional security/risk alerts are nonduplicative and urgent alerts follow the overview.
+- Weekly caps are 35 unique items and 10000 body characters excluding URL targets, never quotas. Topic syntheses have an advisory 2–4-item aim and 2–4 concise sentences combining progress, evidence and implications. Watch items need not be experiments; factual claims still need citations.
+- Align all output templates and add deterministic weekly cap/body/configured-heading regressions. Repeated `--topic-heading` arguments enable localized heading/order/empty-note checks. Daily editorial policy and validator behavior remain unchanged; source/evidence safeguards, release brevity, delivery and cron compatibility remain intact.
+
 ## v3.17.1 — 2026-08-12
 
 ### Fixed

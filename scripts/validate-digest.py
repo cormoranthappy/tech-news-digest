@@ -134,17 +134,17 @@ def section_gate(title, mode):
     title = re.sub(r"^[^\w\u3400-\u9fff]+", "", title).strip().lower()
     title = re.sub(r"\s*[（(].*$", "", title).strip()
     if title in ("值得读", "延伸阅读", "阅读", "reading", "博客精选", "blog picks"):
-        return "reading", 3 if mode == "daily" else 2
+        return "reading", 3 if mode == "daily" else 4
     if title in ("项目发现", "github 项目发现", "值得试", "project discovery", "worth trying"):
-        return "discovery", 3 if mode == "daily" else 2
+        return "discovery", 3
     if mode == "daily" and title in ("kol 动态", "kol动态", "kol updates", "关键人物动态"):
         return "kol", 3
     if mode == "daily" and title in ("可行动", "action", "actions"):
         return "action", 2
-    if mode == "weekly" and title in ("本周主题", "themes", "thematic syntheses"):
-        return "themes", 3
-    if mode == "weekly" and title in ("下周验证", "下周验证清单", "next-week validation", "next week validation"):
-        return "validation", 3
+    if mode == "weekly" and title in ("观点与深度阅读", "观点 / 深度阅读", "viewpoints / deep reading", "viewpoints and deep reading", "deep reading", "viewpoints"):
+        return "reading", 4
+    if mode == "weekly" and (title in ("下周关注", "下周观察", "next-week watch", "next week watch", "下周验证清单") or EXPERIMENT_HEADING.search(title)):
+        return "watch", 3
     return None
 
 
@@ -179,12 +179,57 @@ def explanation(text, repo):
     return value.strip(" \t\r\n—–-:：|()（）")
 
 
-def validate(text, mode="daily"):
+def body_length(text):
+    """Exclude only URL targets; retain labels, markup, titles and whitespace."""
+    found = links(text)
+    size = len(text)
+    for _, start, end in found:
+        fragment = text[start:end]
+        prefix = MARKDOWN_START.match(fragment)
+        target = fragment[prefix.end():-1].strip() if prefix else fragment[1:-1]
+        target = re.sub(r'\s+(?:"[^"\n]*"|\'[^\'\n]*\')$', '', target)
+        if target.startswith("<") and target.endswith(">"):
+            target = target[1:-1]
+        size -= len(target)
+    for match in RAW_URL.finditer(text):
+        if not any(start <= match.start() < end for _, start, end in found):
+            size -= len(match.group().rstrip(".,;:!?)"))
+    return size
+
+
+def check_topic_headings(lines, expected):
+    """Use caller-supplied localized labels, never hard-code configured topics."""
+    errors = []
+    sections = [(i, heading(line)) for i, line in enumerate(lines) if heading(line) is not None]
+    positions = []
+    for title in expected:
+        matches = [(i, pos) for i, (pos, found) in enumerate(sections) if found == plain(title)]
+        if len(matches) != 1:
+            errors.append(f"[topic-heading] expected exactly one configured heading: {title}")
+            continue
+        index, pos = matches[0]
+        positions.append(pos)
+        end = sections[index + 1][0] if index + 1 < len(sections) else len(lines)
+        content = [line.strip() for line in lines[pos + 1:end] if line.strip() and line.strip() != "---"]
+        if not content:
+            errors.append(f"[coverage-note] empty topic needs an honest coverage note: {title}")
+    if positions != sorted(positions):
+        errors.append("[topic-order] configured topics must retain their order")
+    return errors
+
+
+def validate(text, mode="daily", topic_headings=None):
     """Return human-readable violations, each with a stable bracketed code."""
     if mode not in ("daily", "weekly"):
         raise ValueError("mode must be daily or weekly")
     errors = []
     lines = text.splitlines()
+    if mode == "weekly":
+        size = body_length(text)
+        if size > 10000:
+            errors.append(f"[body-limit] {size} body characters exceeds weekly cap 10000")
+        if topic_headings:
+            errors.extend(check_topic_headings(lines, topic_headings))
     matches = [BULLET.match(line) for line in lines]
     # A uniformly indented Markdown list is valid; deeper bullets are children.
     indents = [len(match.group(1)) for match in matches if match and len(match.group(1)) <= 3]
@@ -221,7 +266,7 @@ def validate(text, mode="daily"):
         elif current is not None and stripped:
             current["text"] += "\n" + stripped
 
-    limit, release_limit = (30, 3) if mode == "daily" else (18, 5)
+    limit, release_limit = (30, 3) if mode == "daily" else (35, 5)
     if not blocks:
         errors.append("[empty-digest] no top-level content bullets")
     if len(blocks) > limit:
@@ -251,6 +296,9 @@ def validate(text, mode="daily"):
         invalid = any(not valid_url(url) for url, _, _ in citations)
         proposed = EXPERIMENT_HEADING.search(title) and (
             PROPOSAL.search(plain(body)) or re.search(r"拟议|尚未执行|proposed|not performed", title, re.I))
+        if mode == "weekly" and gate and gate[0] == "watch":
+            proposed = proposed or (PROPOSAL.search(plain(body)) and re.search(
+                r"拟议实验|建议实验|proposed experiment|尚未执行|not performed", body, re.I))
         if invalid or (not any(valid_url(url) for url, _, _ in citations) and not proposed):
             errors.append(f"line {number}: [source-link] expected a valid HTTP(S) Markdown or angle source link")
         if SCORE.search(plain(body)):
@@ -258,6 +306,8 @@ def validate(text, mode="daily"):
         urls = source_urls(body)
         repo = repository(body, urls)
         dedicated = RELEASE_HEADING.search(title) and not COMBINED_HEADING.search(title)
+        if mode == "weekly" and re.search(r"关键发布", title):
+            dedicated = True
         explicit = any(re.search(r"/releases(?:/|$)", urlsplit(url).path) for url in urls)
         labeled_release = bool(repo and VERSION.search(body) and RELEASE_HEADING.search(title))
         if not (dedicated or explicit or labeled_release):
@@ -279,13 +329,15 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input", required=True, type=Path, help="UTF-8 Markdown/Discord digest")
     parser.add_argument("--mode", required=True, choices=("daily", "weekly"))
+    parser.add_argument("--topic-heading", action="append", default=[],
+                        help="Weekly: repeat configured localized headings in order for heading/coverage checks")
     args = parser.parse_args(argv)
     try:
         text = args.input.read_text(encoding="utf-8")
     except (OSError, UnicodeError) as exc:
         print(f"ERROR: cannot read {args.input}: {exc}", file=sys.stderr)
         return 2
-    errors = validate(text, args.mode)
+    errors = validate(text, args.mode, topic_headings=args.topic_heading)
     if errors:
         print(f"FAIL: {len(errors)} quality-gate violation(s)", file=sys.stderr)
         for error in errors:

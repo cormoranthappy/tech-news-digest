@@ -42,6 +42,14 @@ A quality-scored, deduplicated tech digest built from **216 built-in sources** p
 | 🐙 GitHub | 47 repos | Releases from key projects (llama.cpp, vLLM, SGLang, LangGraph, MCP…) |
 | 🗣️ Reddit | 13 subs *(opt-in)* | r/MachineLearning, r/LocalLLaMA, r/CryptoCurrency — needs OAuth, see below |
 
+### Weekly editorial policy
+
+Weekly reports keep an overview and configured topic chapters in configured order, normally LLM / AI Agent / Crypto / Frontier Tech. Aim for 2–4 substantial syntheses per topic (advisory), each 2–4 concise sentences connecting weekly progress, evidence and implications—not a headline concatenation or three-theme global summary. Retain empty required headings with honest coverage notes.
+
+Caps, not quotas: **35 unique items / 10000 body characters excluding URL targets**, including evidence events within syntheses. Key releases ≤5 repositories (Chinese explanation ≤80 characters), projects ≤3, viewpoints/deep reading ≤4, optional next-week watch ≤3 pending releases/fixes/uncertainties. No forced experiments; factual claims need citations. Optional security/risk coverage is nonduplicative; urgent alerts go immediately after the overview. Daily policy and validator behavior are unchanged.
+
+Follow [the authoritative prompt](references/digest-prompt.md) and [canonical template](references/templates/markdown.md). Validate weekly with `--mode weekly` and repeated `--topic-heading 'EXACT LOCALIZED HEADING'` arguments in configured order; unique-event counts, evidence quality and coverage-note honesty still need editorial review. All formats share one selection. Legacy cron quota/trend parameters remain superseded by mode policy; no schedule changes are required.
+
 ### Pipeline
 
 ```

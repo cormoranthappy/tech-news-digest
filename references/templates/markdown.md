@@ -1,6 +1,6 @@
 # Canonical Markdown Template
 
-Hard report-body limits: daily ≤6500 characters, weekly ≤4800, excluding URL targets only (not headings, source labels or prose). No filling to the limit. A single concise coverage caveat without raw counts is allowed when missing/failed sources materially limit coverage; detailed failures remain in the operational log. These exceptions/limits apply to the shared canonical content in every format.
+Hard report-body limits: daily ≤6500 characters, weekly ≤10000, excluding URL targets only (not headings, source labels or prose). No filling to the limit. A single concise coverage caveat without raw counts is allowed when missing/failed sources materially limit coverage; detailed failures remain in the operational log. These exceptions/limits apply to the shared canonical content in every format.
 
 Follow `../digest-prompt.md` as the authoritative editorial policy. Select once; all formats use the same items, judgments and order. These are structural placeholders, not factual examples or mandatory fill-in quotas. Translate headings to `<LANGUAGE>`; Chinese means Simplified Chinese.
 
@@ -38,30 +38,41 @@ Follow `../digest-prompt.md` as the authoritative editorial policy. Select once;
 
 Use configured topic labels/order if customized. Aim for 3–5 qualified news items per topic; KOL, release, discovery and blog sections each allow up to 3 items, within the global cap. Keep headings even if no item qualifies: use a brief non-bullet coverage note, never filler. A collection failure is not evidence of no news. One event has one home; keep GitHub releases short rather than restoring changelog inventories. Do not target a single Discord message.
 
-## Weekly — at most 18 unique items overall
+## Weekly — at most 35 unique items overall
 
 ```markdown
 # 科技周报 — {{DATE}}
 
-> {{本周判断与仍存的不确定性}}
+> {{2–4 句本周概览：主要变化与仍存的不确定性，不引入新事件}}
 
-## 本周主题
-• **{{主题结论}}** — {{连接多个已核实进展的综合判断、影响与局限}}。[来源](<{{ORIGINAL_URL}}>) [来源](<{{INDEPENDENT_URL}}>)
+## 🧠 LLM / 大模型
+• **{{综合判断}}** — {{用 2–4 句连接本周进展、具体证据与影响/局限，非标题拼接}}。[来源](<{{URL}}>)
 
-## 关键发布与行动
+## 🤖 AI Agent
+• **{{综合判断}}** — {{本周进展、证据与影响}}。[来源](<{{URL}}>)
+
+## 💰 Crypto / 加密技术
+• **{{综合判断}}** — {{协议、技术或基础设施进展及其意义}}。[来源](<{{URL}}>)
+
+## 🚀 前沿科技
+{{若无合格内容，用非列表句如：本期暂无值得单列的更新；若采集失败则说明覆盖受限。}}
+
+## 📦 关键发布
 • **{{owner/repo vX.Y.Z}}** — {{关键变化；适用对象与行动}}。[来源](<{{RELEASE_URL}}>)
 
-## 值得试
-• **{{项目}}** — {{用途与当前尝试理由}}。[来源](<{{URL}}>)
+## 🐙 项目发现
+• **{{项目}}** — {{用途、当前尝试理由与局限}}。[来源](<{{URL}}>)
 
-## 值得读
-• **{{论文、文档、复盘或文章}}** — {{阅读收益}}。[来源](<{{URL}}>)
+## 📝 观点与深度阅读
+• **{{作者观点、论文、文档、复盘或文章}}** — {{核心论点、具体洞见与适合谁读；区分观点与事实}}。[来源](<{{URL}}>)
 
-## 下周验证（拟议，尚未执行）
-• **{{问题}}** — 最小测试：{{测试设计}}；指标/判定阈值：{{可测量标准}}；依据：{{前文主题名，不重复其链接}}。
+## 下周关注
+• **{{待发布、待修复或未决问题}}** — {{关注什么以及为什么；日期/状态等事实需来源}}。[来源](<{{URL}}>)
 ```
 
-Themes ≤3, evidence-backed syntheses rather than an expanded daily list; releases ≤5 repositories; try ≤2; read ≤2; proposed validation checks ≤3. Count every unique evidence event inside themes, plus standalone actions/checks, toward 18. Weekly may synthesize daily coverage; daily repeats need an explicit incremental development. Do not append another trend summary from legacy cron parameters.
+Use the effective configured topic labels/order, not a hard-coded topic list. Aim for 2–4 substantial syntheses per topic, advisory only, each 2–4 concise sentences; no global three-theme constraint. Releases ≤5 repositories, Chinese explanations ≤80 characters; projects ≤3; viewpoints/deep reading ≤4 combined; optional next-week watch ≤3. Retain empty required topic/release/project/reading headings with honest non-bullet coverage notes, not filler. Caps are not quotas. Optional security/risk: urgent `## 🛡️ 安全警报` immediately after overview, otherwise consequential nonurgent risks after topics; omit when empty and never duplicate topics/releases. Omit next-week watch when empty; don't force experiments. Only clearly proposed/not-performed experiments may omit citations (question + minimal test + metric); factual watch claims require sources. Count every unique evidence event inside syntheses and standalone watch proposals toward 35. Weekly may synthesize daily coverage; daily repeats need an explicit incremental development. Do not append another trend summary from legacy cron parameters.
+
+Weekly production validation adds repeated `--topic-heading 'EXACT LOCALIZED HEADING'` arguments in configured order, as specified in `../digest-prompt.md`. Required non-topic headings, overview, security placement, actual event counts and evidence/coverage honesty still require editorial review.
 
 ## Shared Checks
 
