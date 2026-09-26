@@ -194,6 +194,7 @@ def parse_feed_feedparser(content: str, cutoff: datetime, feed_url: str) -> List
                 articles.append({
                     "title": title[:200],
                     "link": resolve_link(link, feed_url),
+                    "summary": strip_tags(entry.get("summary", ""))[:2400],
                     "date": pub_date.isoformat(),
                 })
                 
@@ -219,6 +220,7 @@ def parse_feed_regex(content: str, cutoff: datetime, feed_url: str) -> List[Dict
             articles.append({
                 "title": title[:200],
                 "link": link,
+                "summary": strip_tags(get_tag(block, "description"))[:2400],
                 "date": pub.isoformat(),
             })
 
