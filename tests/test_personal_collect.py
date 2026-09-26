@@ -18,3 +18,18 @@ def test_dns_private_and_redirect_rejected():
 def test_public_destination_allowed():
     with patch.object(c.socket,'getaddrinfo',return_value=[(2,1,6,'',('93.184.216.34',443))]):
         assert c.public_url('https://example.com/')=='https://example.com/'
+
+def test_page_fingerprint_includes_tail_and_links():
+    class Response:
+        url='https://example.com/'
+        def __init__(self,text):self.text=text
+        def __enter__(self):return self
+        def __exit__(self,*args):pass
+        def read(self,n):return self.text.encode()
+    def fetch(tail,link):
+        markup='<main><h1>News</h1><p>'+('x'*1700)+tail+'</p><a href="'+link+'">Read more</a></main>'
+        with patch.object(c,'public_open',return_value=Response(markup)):
+            return c.fetch_page({'id':'x','url':'https://example.com/','name':'Example'})['articles'][0]['content_hash']
+    assert fetch('old','/a')==fetch('old','/a')
+    assert fetch('old','/a')!=fetch('new','/a')
+    assert fetch('old','/a')!=fetch('old','/b')

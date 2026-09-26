@@ -69,12 +69,27 @@ class LedgerTests(unittest.TestCase):
         self.profile['sources'][0]['enabled'] = False
         self.assertIsNone(p.prepare_batch(self.db, self.profile, NOW))
 
-    def test_pending_source_disable_requires_review(self):
+    def test_pending_source_disable_replans_without_delivery(self):
         p.collect(self.db, self.profile, fetched(), NOW)
         p.prepare_batch(self.db, self.profile, NOW)
         self.profile['sources'][0]['enabled'] = False
-        with self.assertRaises(ValueError):
-            p.prepare_batch(self.db, self.profile, NOW)
+        self.assertIsNone(p.prepare_batch(self.db, self.profile, NOW))
+        self.profile['sources'][0]['enabled']=True
+        self.assertIsNotNone(p.prepare_batch(self.db,self.profile,NOW))
+
+    def test_pending_priority_and_exclusion_changes_replan(self):
+        p.collect(self.db,self.profile,fetched('E',title='Skip this'),NOW)
+        p.collect(self.db,self.profile,fetched('F',title='Keep this',link='https://example.com/f'),NOW)
+        old=p.prepare_batch(self.db,self.profile,NOW)
+        self.profile['exclude_keywords']=['Skip'];self.profile['primary_categories']=['F','E','D']
+        new=p.prepare_batch(self.db,self.profile,NOW)
+        self.assertNotEqual(old['id'],new['id']);self.assertEqual([x['source_id'] for x in new['items']],['F'])
+
+    def test_started_publication_requires_recovery_before_replan(self):
+        p.collect(self.db,self.profile,fetched(),NOW);b=p.prepare_batch(self.db,self.profile,NOW)
+        with self.db:self.db.execute('INSERT INTO publication_locks VALUES(?)',(b['id'],))
+        self.profile['sources'][0]['enabled']=False
+        with self.assertRaisesRegex(ValueError,'resume frozen'):p.prepare_batch(self.db,self.profile,NOW)
 
     def test_priority_categories_share_space_before_fallback(self):
         for cat in ['E', 'F', 'D', 'A']:

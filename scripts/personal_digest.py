@@ -81,6 +81,7 @@ def open_ledger(path):
       created TEXT NOT NULL, delivered TEXT, receipt TEXT);
     CREATE TABLE IF NOT EXISTS source_checks (
       source_id TEXT PRIMARY KEY, checked TEXT NOT NULL, status TEXT NOT NULL);
+    CREATE TABLE IF NOT EXISTS publication_locks (batch_id TEXT PRIMARY KEY);
     ''')
     path.chmod(0o600)
     return db
@@ -153,11 +154,13 @@ def prepare_batch(db, profile, now=None):
         allowed = enabled_sources(profile)
         if old:
             payload = json.loads(old['payload'])
-            if any(x['source_id'] not in allowed or not (set(x['categories']) & set(profile['categories']))
-                   for x in payload['items']):
-                raise ValueError('Pending batch contains disabled interests/sources; review before delivery')
-            db.commit()
-            return payload
+            if payload.get('profile_revision')!=digest(profile):
+                if db.execute('SELECT 1 FROM publication_locks WHERE batch_id=?',(payload['id'],)).fetchone():
+                    raise ValueError('Publication started; resume frozen delivery before changing preferences')
+                db.execute('UPDATE batches SET delivered=?,receipt=? WHERE id=?',('superseded-profile',json.dumps({'reason':'preferences changed before publication'}),payload['id']))
+            else:
+                db.commit()
+                return payload
         pending = [json.loads(r['payload']) for r in db.execute('SELECT payload FROM versions WHERE delivered_batch IS NULL ORDER BY rowid DESC')]
         pending = [x for x in pending if x['source_id'] in allowed
                    and set(x['categories']) & set(profile['categories'])
@@ -195,9 +198,10 @@ def prepare_batch(db, profile, now=None):
             db.commit()
             return None
         day = now.astimezone(ZoneInfo(profile['timezone'])).date().isoformat()
-        batch_id = digest([day, [x['key'] for x in selected]])[:24]
+        generation=db.execute('SELECT COUNT(*) FROM batches').fetchone()[0]
+        batch_id = digest([day, [x['key'] for x in selected],digest(profile),generation])[:24]
         payload = {'id': batch_id, 'day': day, 'mode': profile['mode'], 'items': selected,
-                   'model_calls': 0, 'created': now.isoformat()}
+                   'model_calls': 0, 'created': now.isoformat(),'profile_revision':digest(profile)}
         db.execute('INSERT INTO batches VALUES(?,?,?,?,NULL,NULL)',
                    (batch_id, day, json.dumps(payload, ensure_ascii=False), now.isoformat()))
         db.commit()

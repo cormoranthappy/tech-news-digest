@@ -78,7 +78,7 @@ def fetch_page(source):
     return {'source_id': source['id'], 'status': 'ok', 'articles': [{
         'title': pd.text(heading.get_text() if heading else source['name']),
         'link': source['url'], 'summary': body, 'date': None,
-        'page_watch': True, 'links': links, 'content_hash':pd.digest(full_body),
+        'page_watch': True, 'links': links, 'content_hash':pd.digest([full_body,sorted({pd.canonical_url(urljoin(response.url,a['href'])) for a in main.select('a[href]') if urljoin(response.url,a['href']).startswith(('http://','https://'))})]),
     }], 'page_text': body, 'links': links}
 
 
