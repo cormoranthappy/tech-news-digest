@@ -1,6 +1,8 @@
 import sys
 from pathlib import Path
 from unittest.mock import patch
+from unittest.mock import MagicMock
+import io
 import pytest
 from urllib.request import Request
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'scripts'))
@@ -33,3 +35,24 @@ def test_page_fingerprint_includes_tail_and_links():
     assert fetch('old','/a')==fetch('old','/a')
     assert fetch('old','/a')!=fetch('new','/a')
     assert fetch('old','/a')!=fetch('old','/b')
+
+def test_actual_open_rejects_dns_rebinding_before_socket():
+    public=[(2,1,6,'',('93.184.216.34',80))];private=[(2,1,6,'',('127.0.0.1',80))]
+    with patch.object(c.socket,'getaddrinfo',side_effect=[public,private]),patch.object(c.socket,'socket') as sock:
+        with pytest.raises(ValueError,match='Non-public'):c.public_open('http://example.com/',timeout=1)
+        sock.assert_not_called()
+
+def test_actual_redirect_never_connects_to_private_target():
+    sent=[];sock=MagicMock();sock.getpeername.return_value=('93.184.216.34',80)
+    sock.sendall.side_effect=lambda data:sent.append(data)
+    sock.makefile.return_value=io.BytesIO(b'HTTP/1.1 302 Found\r\nLocation: http://rebound.test/private\r\nContent-Length: 0\r\n\r\n')
+    def dns(host,port,**kwargs):return [(2,1,6,'',('127.0.0.1' if host=='rebound.test' else '93.184.216.34',port))]
+    with patch.object(c.socket,'getaddrinfo',side_effect=dns),patch.object(c.socket,'socket',return_value=sock) as factory:
+        with pytest.raises(ValueError,match='Non-public'):c.public_open('http://example.com/start',timeout=1)
+        assert factory.call_count==1
+    assert b'GET /start ' in b''.join(sent);assert b'/private' not in b''.join(sent)
+
+def test_https_retains_hostname_verification():
+    conn=c.PinnedHTTPSConnection('example.com');assert conn._context.check_hostname
+    with patch.object(c.PinnedHTTPConnection,'connect'),patch.object(conn._context,'wrap_socket',return_value=object()) as wrap:
+        conn.sock=object();conn.connect();assert wrap.call_args.kwargs['server_hostname']=='example.com'

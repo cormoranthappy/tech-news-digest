@@ -8,11 +8,54 @@ import json
 import os
 import ipaddress
 import socket
+import http.client
 from pathlib import Path
-from urllib.request import Request, build_opener, HTTPRedirectHandler
+from urllib.request import Request, build_opener, HTTPRedirectHandler, HTTPHandler, HTTPSHandler, ProxyHandler
 from urllib.parse import urljoin, urlsplit
 from bs4 import BeautifulSoup
 import personal_digest as pd
+
+
+def public_addresses(host,port):
+    addresses=socket.getaddrinfo(host,port,type=socket.SOCK_STREAM)
+    if not addresses or any(not ipaddress.ip_address(x[4][0]).is_global for x in addresses):
+        raise ValueError('Non-public source address is not allowed')
+    return addresses
+
+
+class PinnedHTTPConnection(http.client.HTTPConnection):
+    def connect(self):
+        if self._tunnel_host:raise ValueError('Proxy tunnels are not supported for public collection')
+        # Resolve once at connection time, validate, then connect to a numeric sockaddr.
+        addresses=public_addresses(self.host,self.port)
+        last_error=None
+        for family,socktype,proto,_,address in addresses:
+            sock=socket.socket(family,socktype,proto)
+            try:
+                sock.settimeout(None if self.timeout is socket._GLOBAL_DEFAULT_TIMEOUT else self.timeout)
+                if self.source_address:sock.bind(self.source_address)
+                sock.connect(address)
+                if not ipaddress.ip_address(sock.getpeername()[0]).is_global:raise ValueError('Non-public connected peer')
+                self.sock=sock
+                return
+            except Exception as error:
+                sock.close();last_error=error
+        raise last_error or OSError('No reachable public address')
+
+
+class PinnedHTTPSConnection(http.client.HTTPSConnection):
+    def connect(self):
+        PinnedHTTPConnection.connect(self)
+        # Keep the original hostname for SNI and standard certificate verification.
+        self.sock=self._context.wrap_socket(self.sock,server_hostname=self.host)
+
+
+class PublicHTTPHandler(HTTPHandler):
+    def http_open(self,request):return self.do_open(PinnedHTTPConnection,request)
+
+
+class PublicHTTPSHandler(HTTPSHandler):
+    def https_open(self,request):return self.do_open(PinnedHTTPSConnection,request,context=self._context,check_hostname=self._check_hostname)
 
 
 def public_url(url):
@@ -21,9 +64,7 @@ def public_url(url):
     if u.port not in (None,80,443):raise ValueError('Public sources use HTTP(S) standard ports')
     if u.hostname.lower()=='localhost' or u.hostname.lower().endswith(('.local','.localhost')):
         raise ValueError('Local source addresses are not allowed')
-    addresses=socket.getaddrinfo(u.hostname,u.port or (443 if u.scheme=='https' else 80),type=socket.SOCK_STREAM)
-    if not addresses or any(not ipaddress.ip_address(x[4][0]).is_global for x in addresses):
-        raise ValueError('Non-public source address is not allowed')
+    public_addresses(u.hostname,u.port or (443 if u.scheme=='https' else 80))
     return url
 
 
@@ -35,7 +76,7 @@ class PublicRedirect(HTTPRedirectHandler):
 
 def public_open(request,timeout=25):
     public_url(request.full_url if isinstance(request,Request) else request)
-    return build_opener(PublicRedirect()).open(request,timeout=timeout)
+    return build_opener(ProxyHandler({}),PublicHTTPHandler(),PublicHTTPSHandler(),PublicRedirect()).open(request,timeout=timeout)
 
 
 def load_rss():
