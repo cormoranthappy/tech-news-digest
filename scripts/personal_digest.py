@@ -114,7 +114,8 @@ def collect(db, profile, fetched, now=None):
                 title = text(a.get('title'), 300)
                 if not title:
                     continue
-                summary = text(a.get('summary', a.get('description', '')), 1600)
+                full_summary = text(a.get('summary', a.get('description', '')), 2_000_000)
+                summary = full_summary[:1600]
                 excluded = profile.get('exclude_keywords', [])
                 if any(x.casefold() in (title+' '+summary).casefold() for x in excluded if x):
                     continue
@@ -130,7 +131,7 @@ def collect(db, profile, fetched, now=None):
                     date = parsed.isoformat()
                 except (ValueError, TypeError, AttributeError):
                     date = None
-                version = digest([title, summary])
+                version = digest([title, full_summary, a['content_hash']]) if a.get('content_hash') else digest([title, full_summary])
                 key = digest([url, version])
                 payload = {'key': key, 'url': url, 'title': title, 'summary': summary,
                            'published': date, 'source_id': sid, 'source_name': source.get('name', sid),

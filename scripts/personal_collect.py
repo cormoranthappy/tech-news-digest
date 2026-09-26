@@ -6,11 +6,36 @@ import datetime as dt
 import importlib.util
 import json
 import os
+import ipaddress
+import socket
 from pathlib import Path
-from urllib.request import Request, urlopen
-from urllib.parse import urljoin
+from urllib.request import Request, build_opener, HTTPRedirectHandler
+from urllib.parse import urljoin, urlsplit
 from bs4 import BeautifulSoup
 import personal_digest as pd
+
+
+def public_url(url):
+    pd.canonical_url(url)
+    u=urlsplit(url)
+    if u.port not in (None,80,443):raise ValueError('Public sources use HTTP(S) standard ports')
+    if u.hostname.lower()=='localhost' or u.hostname.lower().endswith(('.local','.localhost')):
+        raise ValueError('Local source addresses are not allowed')
+    addresses=socket.getaddrinfo(u.hostname,u.port or (443 if u.scheme=='https' else 80),type=socket.SOCK_STREAM)
+    if not addresses or any(not ipaddress.ip_address(x[4][0]).is_global for x in addresses):
+        raise ValueError('Non-public source address is not allowed')
+    return url
+
+
+class PublicRedirect(HTTPRedirectHandler):
+    def redirect_request(self,req,fp,code,msg,headers,newurl):
+        public_url(newurl)
+        return super().redirect_request(req,fp,code,msg,headers,newurl)
+
+
+def public_open(request,timeout=25):
+    public_url(request.full_url if isinstance(request,Request) else request)
+    return build_opener(PublicRedirect()).open(request,timeout=timeout)
 
 
 def load_rss():
@@ -19,13 +44,14 @@ def load_rss():
     spec.loader.exec_module(module)
     module.TIMEOUT = 20
     module.RETRY_COUNT = 1
+    module.urlopen = public_open
     module._get_rss_cache()
     return module
 
 
 def fetch_page(source):
     req = Request(source['url'], headers={'User-Agent': 'PersonalDailyDigest/1.0 (private RSS and public-page reader)'})
-    with urlopen(req, timeout=25) as response:
+    with public_open(req, timeout=25) as response:
         raw = response.read(2_000_001)
         if len(raw) > 2_000_000:
             raise ValueError('Public page exceeds download limit')
@@ -34,7 +60,8 @@ def fetch_page(source):
             node.decompose()
         main = soup.select_one(source.get('selector', 'main')) or soup.body or soup
         heading = main.find('h1')
-        body = pd.text(main.get_text(' ', strip=True), 10000)
+        full_body = pd.text(main.get_text(' ', strip=True), 2_000_000)
+        body = full_body[:10000]
         if len(body) < 60:
             raise ValueError('Page text unavailable or dynamic; manual source check needed')
         links, seen = [], set()
@@ -51,7 +78,7 @@ def fetch_page(source):
     return {'source_id': source['id'], 'status': 'ok', 'articles': [{
         'title': pd.text(heading.get_text() if heading else source['name']),
         'link': source['url'], 'summary': body, 'date': None,
-        'page_watch': True, 'links': links,
+        'page_watch': True, 'links': links, 'content_hash':pd.digest(full_body),
     }], 'page_text': body, 'links': links}
 
 

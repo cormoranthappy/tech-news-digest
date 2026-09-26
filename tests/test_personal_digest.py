@@ -53,6 +53,12 @@ class LedgerTests(unittest.TestCase):
         p.acknowledge(self.db, b['id'], {'verified': True, 'target_id': 'n'})
         self.assertIsNone(p.prepare_batch(self.db, self.profile, NOW))
 
+    def test_changes_beyond_display_excerpt_are_detected(self):
+        raw=fetched();raw['sources'][0]['articles'][0]['summary']='x'*1700+'old'
+        self.assertEqual(p.collect(self.db,self.profile,raw,NOW)['added'],1)
+        raw['sources'][0]['articles'][0]['summary']='x'*1700+'new'
+        self.assertEqual(p.collect(self.db,self.profile,raw,NOW)['added'],1)
+
     def test_failure_is_not_empty_success(self):
         r = p.collect(self.db, self.profile, {'sources': []}, NOW)
         self.assertEqual(len(r['failures']), 4)
